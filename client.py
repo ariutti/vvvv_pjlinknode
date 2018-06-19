@@ -24,7 +24,9 @@ if msg.decode() != 'PJ LINK 0':
 	closeSocketAndExit()
 
 print()
-print("Client: Send your PJ Link command then hit 'Enter':")
+print("Client: Send your PJ Link command then hit 'Enter'.")
+print("\nSelect:\n\t'i' for INFO;\n\t'p' for POWR 1 (restart);\n\t'o' for POWR 0 (standby);\n\t'r' for SHDW R (reboot);\n\t's' for SHDW S (shutdown);")
+print("Press 'spacebar' to exit!\n\n")
 # main loop
 while True:
 	m = input() #blocking
@@ -36,7 +38,9 @@ while True:
 	elif m == 'o':
 		msg = '%1POWR 0\r'
 	elif m == 'r':
-		msg = '%1RBOT 1\r'
+		msg = '%1SHDW R\r'
+	elif m == 's':
+		msg = '%1SHDW S\r'
 	elif m == ' ':
 		break
 	else:

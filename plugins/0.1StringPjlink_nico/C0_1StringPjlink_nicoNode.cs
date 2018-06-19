@@ -13,7 +13,7 @@ using VVVV.Core.Logging;
 namespace VVVV.Nodes
 {
 	#region PluginInfo
-	[PluginInfo(Name = "Pjlink_nico", Category = "String", Version = "0.1")]
+	[PluginInfo(Name = "Pjlink_nico", Category = "String", Version = "1.0")]
 	#endregion PluginInfo
 	public class C0_1StringPjlink_nicoNode : IPluginEvaluate
 	{
@@ -33,11 +33,17 @@ namespace VVVV.Nodes
 		[Output("OutGetInfo", IsBang=true)]
 		public ISpread<bool> FOutInfo;
 		
-		[Output("OutPowerOn", IsBang=true)]
-		public ISpread<bool> FOutPowerOn;
+		[Output("OutRestart", IsBang=true)]
+		public ISpread<bool> FOutRestart;
 		
-		[Output("OutPOwerOff", IsBang=true)]
-		public ISpread<bool> FOutPowerOff;
+		[Output("OutStandby", IsBang=true)]
+		public ISpread<bool> FOutStandby;
+		
+		[Output("OutReboot", IsBang=true)]
+		public ISpread<bool> FOutReboot;
+		
+		[Output("OutShutdown", IsBang=true)]
+		public ISpread<bool> FOutShutdown;
 		
 		[Output("doSend", IsBang=true)]
 		public ISpread<bool> FOutSendViaTCP;
@@ -46,10 +52,12 @@ namespace VVVV.Nodes
 		public ILogger FLogger;
 		#endregion fields & pins
 		
-		public bool bInfo = false;
-		public bool bPowerOn = false;
-		public bool bPowerOff= false;
-		public bool bSendViaTCP=false;
+		public bool bInfo      = false;
+		public bool bRestart   = false;
+		public bool bStandby   = false;
+		public bool bReboot    = false;
+		public bool bShutdown  = false;		
+		public bool bSendViaTCP= false;
 		public string response = "";
 		
 
@@ -61,17 +69,25 @@ namespace VVVV.Nodes
 				bInfo = false;
 				FOutInfo[0] = bInfo;
 			}
-			if(bPowerOn){
-				bPowerOn = false;
-				FOutPowerOn[0] = bPowerOn;
+			if(bStandby){
+				bStandby = false;
+				FOutStandby[0] = bStandby;
 			}
-			if(bPowerOff){
-				bPowerOff = false;
-				FOutPowerOff[0] = bPowerOff;
+			if(bRestart){
+				bRestart = false;
+				FOutRestart[0] = bRestart;
 			}
 			if(bSendViaTCP){
 				bSendViaTCP = false;
-				FOutSendViaTCP[0] = bPowerOff;
+				FOutSendViaTCP[0] = bSendViaTCP;
+			}
+			if(bReboot) {
+				bReboot = false;
+				FOutReboot[0] = bReboot;
+			}
+			if(bShutdown) {
+				bShutdown = false;
+				FOutShutdown[0] = bShutdown;
 			}
 			
 			// react to a new incoming connection!
@@ -83,7 +99,7 @@ namespace VVVV.Nodes
 				//FLogger.Log(LogType.Debug, "index: {0}", index);				
 				if(index <0) {
 					// not a valid connection
-					FLogger.Log(LogType.Debug, "This is a not valid connection.");
+					FLogger.Log(LogType.Debug, "This is not a valid connection.");
 				}
 				else 
 				{
@@ -111,8 +127,7 @@ namespace VVVV.Nodes
 				
 				// check if the incoming string is longer than 0
 				if(FInCommand[0].Length == 0){
-					// if not, this is not a  
-					// valid PJlink message.
+					// if not, this is not a valid PJlink message.
 					FLogger.Log(LogType.Debug, "\tNot a valid PJlink command");
 					return;
 				}
@@ -120,7 +135,7 @@ namespace VVVV.Nodes
 				char header  = FInCommand[0][0]; // this should be '%'
 				if(header != '%') {
 					// if header is not %, probably this is not a 
-					// valid PJlink message.
+					// valid PJlink command.
 					FLogger.Log(LogType.Debug, "\tNot a valid PJlink command");
 					return;
 				}
@@ -130,15 +145,16 @@ namespace VVVV.Nodes
 				char data    = FInCommand[0][7];
 				char terminator = FInCommand[0][8];
 				
-				// debugging stuff
+				// Debugging stuff:
 				//FLogger.Log(LogType.Debug, "header is: {0};", header);
 				//FLogger.Log(LogType.Debug, "version is: {0};", version);
 				//FLogger.Log(LogType.Debug, "body is '{0}'", body);
 				//FLogger.Log(LogType.Debug, "sep is '{0}'", sep);
 				//FLogger.Log(LogType.Debug, "data is '{0}'", data);
-								
+				
+				// check the message body
 				if( body == "INFO") {
-					FLogger.Log( LogType.Debug, "\tthis is an info Get Command");
+					FLogger.Log( LogType.Debug, "\tThis is an 'info' Get Command");
 					bInfo = true;
 					FOutInfo[0] = bInfo;
 					//FOutInfo[0] = false;
@@ -150,15 +166,29 @@ namespace VVVV.Nodes
 					response = header.ToString() + version.ToString() + body + '=' + infoSubSet + terminator;
 				}
 				else if( body == "POWR" && data == '1') {
-					FLogger.Log( LogType.Debug, "\tthis is a POWR Set Command 1");
-					bPowerOn = true;
-					FOutPowerOn[0] = bPowerOn;
+					// Remeber for each set message we must answer back
+					// 'OK' or 'ERR1', 'ERR2', 'ERR3' (here we are using 'OK')
+					FLogger.Log( LogType.Debug, "\tThis is a POWR Set Command 1 (restart)");
+					bRestart = true;
+					FOutRestart[0] = bRestart;
 					response = header.ToString() + version.ToString() + body + '=' + "OK" + terminator;
 				}
 				else if( body == "POWR" && data == '0') {
-					FLogger.Log( LogType.Debug, "\tthis is a POWR Set Command 0");
-					bPowerOff= true;
-					FOutPowerOff[0] = bPowerOff;
+					FLogger.Log( LogType.Debug, "\tThis is a POWR Set Command 0 (stanby)");
+					bStandby= true;
+					FOutStandby[0] = bStandby;
+					response = header.ToString() + version.ToString() + body + '=' + "OK" + terminator;
+				}
+				else if( body == "SHDW" && data == 'R') {
+					FLogger.Log( LogType.Debug, "\tThis is a SHDW Set Command R (reboot)");
+					bReboot = true;
+					FOutReboot[0] = bReboot;
+					response = header.ToString() + version.ToString() + body + '=' + "OK" + terminator;
+				}
+				else if( body == "SHDW" && data == 'S') {
+					FLogger.Log( LogType.Debug, "\tThis is a SHDW Set Command S (shutdown)");
+					bShutdown = true;
+					FOutShutdown[0] = bShutdown;
 					response = header.ToString() + version.ToString() + body + '=' + "OK" + terminator;
 				}
 				else
