@@ -1,13 +1,13 @@
 <!DOCTYPE PATCH  SYSTEM "http://vvvv.org/versions/vvvv50beta36.dtd" >
    <PATCH nodename="C:\Users\nicola\Documents\vvvv_sketchbook\custom_pjlink_node\patch1.v4p" systemname="patch1" filename="C:\Users\nicola\Documents\vvvv_sketchbook\custom_pjlink_node\patch1.v4p" scrollx="0" scrolly="-360">
-   <BOUNDS type="Window" left="6765" top="1005" width="16800" height="9630">
+   <BOUNDS type="Window" left="2895" top="1260" width="16800" height="9630">
    </BOUNDS>
    <NODE systemname="Renderer (TTY)" nodename="Renderer (TTY)" componentmode="InAWindow" id="1">
    <BOUNDS type="Node" left="9810" top="600" width="100" height="100">
    </BOUNDS>
    <BOUNDS type="Box" left="9810" top="600" width="2400" height="1800">
    </BOUNDS>
-   <BOUNDS type="Window" left="17400" top="7410" width="6240" height="5010">
+   <BOUNDS type="Window" left="16530" top="7410" width="7110" height="5010">
    </BOUNDS>
    <PIN pinname="Clear" visible="1">
    </PIN>

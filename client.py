@@ -20,13 +20,15 @@ msg = s.recv(1024) # blocking
 print( msg )
 # the message should contain "PJ LINK 0"
 if msg.decode() != 'PJ LINK 0':
-	print( 'Client: connection not enstablished ' )
+	print( 'Client: connection not enstablished.' )
 	closeSocketAndExit()
 
 print()
-print("Client: Send your PJ Link command then hit 'Enter'.")
-print("\nSelect:\n\t'i' for INFO;\n\t'p' for POWR 1 (restart);\n\t'o' for POWR 0 (standby);\n\t'r' for SHDW R (reboot);\n\t's' for SHDW S (shutdown);")
-print("Press 'spacebar' to exit!\n\n")
+print( 'Client: connection enstablished! ("PJ LINK 0" received)' )
+
+print("Send your PJ Link command:\n")
+print("\t'i' for INFO;\n\t'p' for POWR 1 (restart);\n\t'o' for POWR 0 (standby);\n\t'r' for SHDW R (reboot);\n\t's' for SHDW S (shutdown);")
+print("...then hit 'Enter'. Press 'spacebar' to exit!\n\n")
 # main loop
 while True:
 	m = input() #blocking
