@@ -18,53 +18,68 @@ namespace VVVV.Nodes
 	public class C0_1StringPjlink_nicoNode : IPluginEvaluate
 	{
 		#region fields & pins
-		[Input("information Input", DefaultString = "working", IsSingle = true)]
+		
+		//input pins
+		[Input("Power status Input", DefaultString = "1", IsSingle = true)]
+		public IDiffSpread<string> FInPowerStatus;
+		
+		[Input("information Input", DefaultString = "OK", IsSingle = true)]
 		public IDiffSpread<string> FInInfo;
 		
-		[Input("pjlink commands", DefaultString = "", IsSingle = true)]
+		[Input("PJlink commands", DefaultString = "", IsSingle = true)]
 		public IDiffSpread<string> FInCommand;
 		
 		[Input("Connection enstablished", DefaultString = "", IsSingle = true)]
 		public IDiffSpread<string> FInRemoteHost;
 		
-		[Output("OutResponse")]
+		//output pins
+		[Output("PJlink Response")]
 		public ISpread<string> FOutResponse;
 		
-		[Output("OutGetInfo", IsBang=true)]
+		[Output("Get Power Status", IsBang=true)]
+		public ISpread<bool> FOutPowerStatus;
+		
+		[Output("Get Info", IsBang=true)]
 		public ISpread<bool> FOutInfo;
 		
-		[Output("OutRestart", IsBang=true)]
+		[Output("Restart", IsBang=true)]
 		public ISpread<bool> FOutRestart;
 		
-		[Output("OutStandby", IsBang=true)]
+		[Output("Standby", IsBang=true)]
 		public ISpread<bool> FOutStandby;
 		
-		[Output("OutReboot", IsBang=true)]
+		[Output("PC Reboot", IsBang=true)]
 		public ISpread<bool> FOutReboot;
 		
-		[Output("OutShutdown", IsBang=true)]
+		[Output("PC Shutdown", IsBang=true)]
 		public ISpread<bool> FOutShutdown;
 		
-		[Output("doSend", IsBang=true)]
+		[Output("Do Send", IsBang=true)]
 		public ISpread<bool> FOutSendViaTCP;
-
+		
+		//other stuff
 		[Import()]
 		public ILogger FLogger;
 		#endregion fields & pins
 		
-		public bool bInfo      = false;
-		public bool bRestart   = false;
-		public bool bStandby   = false;
-		public bool bReboot    = false;
-		public bool bShutdown  = false;		
-		public bool bSendViaTCP= false;
-		public string response = "";
+		public bool bPowerStatus= false;
+		public bool bInfo       = false;
+		public bool bRestart    = false;
+		public bool bStandby    = false;
+		public bool bReboot     = false;
+		public bool bShutdown   = false;		
+		public bool bSendViaTCP = false;
+		public string response  = "";
 		
 
 		//called when data for any output pin is requested
 		public void Evaluate(int SpreadMax)
 		{
 			// reset all the bangs
+			if(bPowerStatus){
+				bPowerStatus = false;
+				FOutPowerStatus[0] = bPowerStatus;
+			}
 			if(bInfo){
 				bInfo = false;
 				FOutInfo[0] = bInfo;
@@ -94,32 +109,37 @@ namespace VVVV.Nodes
 			if(FInRemoteHost.IsChanged)
 			{
 				FLogger.Log(LogType.Debug, "\n");
-				// is there a colon?
+				// is there a colon (is it a valid connection)?
 				int index = FInRemoteHost[0].IndexOf(':');
 				//FLogger.Log(LogType.Debug, "index: {0}", index);				
 				if(index <0) {
 					// not a valid connection
-					FLogger.Log(LogType.Debug, "This is not a valid connection.");
+					FLogger.Log(LogType.Debug, "Disconnection or invalid connection.");
 				}
 				else 
-				{
+				{					
 					FLogger.Log(LogType.Debug, "A new Incoming Connection!");
 					// this is a new valid connection!
 					// So we parse the IP address and PORT
 					string ip = FInRemoteHost[0].Split(':')[0];
 					string port = FInRemoteHost[0].Split(':')[1];
 					FLogger.Log(LogType.Debug, "\t[ip {0}, port {1}]", ip, port);
+					
+					
+					// 2018-07-06 - sending "PJ LINK 0" is no more needed!
+					/*
 					// send the 'PJ LINK 0' msg
 					response = "PJ LINK 0";
 					FOutResponse[0] = response;	
 					// tell the TCP node to send the response
 					bSendViaTCP = true;
-					FOutSendViaTCP[0] = bSendViaTCP;	
-				}					
+					FOutSendViaTCP[0] = bSendViaTCP;
+					*/
+				}				
 			}
 			
 			
-			// elaborate the pjlink commands
+			// elaborate the PJlink commands
 			if(FInCommand.IsChanged)
 			{
 				FLogger.Log(LogType.Debug, "\nA new PJlink command!");
@@ -131,6 +151,7 @@ namespace VVVV.Nodes
 					FLogger.Log(LogType.Debug, "\tNot a valid PJlink command");
 					return;
 				}
+				
 				// parsing the incoming message
 				char header  = FInCommand[0][0]; // this should be '%'
 				if(header != '%') {
@@ -152,18 +173,22 @@ namespace VVVV.Nodes
 				//FLogger.Log(LogType.Debug, "sep is '{0}'", sep);
 				//FLogger.Log(LogType.Debug, "data is '{0}'", data);
 				
+				
 				// check the message body
-				if( body == "INFO") {
-					FLogger.Log( LogType.Debug, "\tThis is an 'info' Get Command");
+				if( body == "POWR" && data == '?') {
+					FLogger.Log( LogType.Debug, "\tThis is a POWR Get Command");
+					if( !checkResponse_power()) { return; }
+					bPowerStatus = true;
+					FOutPowerStatus[0] = bPowerStatus;
+					response = header.ToString() + version.ToString() + body + '=' + FInPowerStatus[0] + terminator;
+					
+				}
+				else if( body == "INFO") {
+					FLogger.Log( LogType.Debug, "\tThis is an INFO Get Command");
+					if( !checkResponse_info()) { return; }
 					bInfo = true;
 					FOutInfo[0] = bInfo;
-					//FOutInfo[0] = false;
-					// information text included in the response 
-					// cannot be longer than 32 characters.
-					int infoLen = FInInfo[0].Length;
-					string infoSubSet = FInInfo[0].Substring(0, Math.Min(32, infoLen ));
-					//FLogger.Log(LogType.Debug, "Info are: {0}", infoSubSet);
-					response = header.ToString() + version.ToString() + body + '=' + infoSubSet + terminator;
+					response = header.ToString() + version.ToString() + body + '=' + FInInfo[0] + terminator;
 				}
 				else if( body == "POWR" && data == '1') {
 					// Remeber for each set message we must answer back
@@ -195,11 +220,50 @@ namespace VVVV.Nodes
 				{
 					// no valid commands
 				}
+				
+				bool checkResponse_power()
+				{	
+					if( FInPowerStatus[0] == "0" || FInPowerStatus[0] == "1" || FInPowerStatus[0] == "2" || FInPowerStatus[0] == "3" || 
+						FInPowerStatus[0] == "ERR3" || FInPowerStatus[0] == "ERR4")
+					{
+						return true;
+					}
+					// if response is not a standard one print, an error message and exit
+					FLogger.Log( LogType.Debug, "\tResponse to 'POWR ?' request is not valid.");
+					FLogger.Log( LogType.Debug, "\tValid responses are [0, 1, 2, 3, ERR3, ERR4]");
+					return false;
+					// TODO: make a check on string dimension
+					// information text included in the response 
+					// cannot be longer than 32 characters.
+					//int infoLen = FInPowerStatus[0].Length;
+					//string infoSubSet = FInPowerStatus[0].Substring(0, Math.Min(32, infoLen ));
+					//FLogger.Log(LogType.Debug, "Info are: {0}", infoSubSet);
+				}
+				
+				bool checkResponse_info()
+				{
+					if( FInInfo[0] == "OK" || FInInfo[0] == "ERR1" || FInInfo[0] == "ERR3" || FInInfo[0] == "ERR4" )
+					{
+						return true;
+					}
+					// if response is not a standard one, print an error message and exit
+					FLogger.Log( LogType.Debug, "\tResponse to 'INFO ?' request is not valid.");
+					FLogger.Log( LogType.Debug, "\tValid responses are [OK, ERR1, ERR3, ERR4]");
+					return false;
+					// TODO: make a check on string dimension
+					// information text included in the response 
+					// cannot be longer than 32 characters.
+					//int infoLen = FInInfo[0].Length;
+					//string infoSubSet = FInInfo[0].Substring(0, Math.Min(32, infoLen ));
+					//FLogger.Log(LogType.Debug, "Info are: {0}", infoSubSet)
+				}
+				
+				
 				FOutResponse[0] = response;	
 				// tell the TCP node to send the response
 				bSendViaTCP = true;
 				FOutSendViaTCP[0] = bSendViaTCP;
 			}
-		}
-	}
+		} // end of Evaluate
+	} // end of class
 }
