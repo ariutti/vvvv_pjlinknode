@@ -71,7 +71,43 @@ namespace VVVV.Nodes
 		public bool bSendViaTCP = false;
 		public string response  = "";
 		
-
+		public bool checkResponse_power()
+		{	
+			if( FInPowerStatus[0] == "0" || FInPowerStatus[0] == "1" || FInPowerStatus[0] == "2" || FInPowerStatus[0] == "3" || 
+				FInPowerStatus[0] == "ERR3" || FInPowerStatus[0] == "ERR4")
+			{
+				return true;
+			}
+			// if response is not a standard one print, an error message and exit
+			FLogger.Log( LogType.Debug, "\tResponse to 'POWR ?' request is not valid.");
+			FLogger.Log( LogType.Debug, "\tValid responses are [0, 1, 2, 3, ERR3, ERR4]");
+			return false;
+			// TODO: make a check on string dimension
+			// information text included in the response 
+			// cannot be longer than 32 characters.
+			//int infoLen = FInPowerStatus[0].Length;
+			//string infoSubSet = FInPowerStatus[0].Substring(0, Math.Min(32, infoLen ));
+			//FLogger.Log(LogType.Debug, "Info are: {0}", infoSubSet);
+		}
+				
+		public bool checkResponse_info()
+		{
+			if( FInInfo[0] == "OK" || FInInfo[0] == "ERR1" || FInInfo[0] == "ERR3" || FInInfo[0] == "ERR4" )
+			{
+				return true;
+			}
+			// if response is not a standard one, print an error message and exit
+			FLogger.Log( LogType.Debug, "\tResponse to 'INFO ?' request is not valid.");
+			FLogger.Log( LogType.Debug, "\tValid responses are [OK, ERR1, ERR3, ERR4]");
+			return false;
+			// TODO: make a check on string dimension
+			// information text included in the response 
+			// cannot be longer than 32 characters.
+			//int infoLen = FInInfo[0].Length;
+			//string infoSubSet = FInInfo[0].Substring(0, Math.Min(32, infoLen ));
+			//FLogger.Log(LogType.Debug, "Info are: {0}", infoSubSet)
+		}
+		
 		//called when data for any output pin is requested
 		public void Evaluate(int SpreadMax)
 		{
@@ -136,7 +172,7 @@ namespace VVVV.Nodes
 					FOutSendViaTCP[0] = bSendViaTCP;
 					*/
 				}				
-			}
+			} //end of if(FInRemoteHost.IsChanged)
 			
 			
 			// elaborate the PJlink commands
@@ -219,51 +255,14 @@ namespace VVVV.Nodes
 				else
 				{
 					// no valid commands
-				}
-				
-				bool checkResponse_power()
-				{	
-					if( FInPowerStatus[0] == "0" || FInPowerStatus[0] == "1" || FInPowerStatus[0] == "2" || FInPowerStatus[0] == "3" || 
-						FInPowerStatus[0] == "ERR3" || FInPowerStatus[0] == "ERR4")
-					{
-						return true;
-					}
-					// if response is not a standard one print, an error message and exit
-					FLogger.Log( LogType.Debug, "\tResponse to 'POWR ?' request is not valid.");
-					FLogger.Log( LogType.Debug, "\tValid responses are [0, 1, 2, 3, ERR3, ERR4]");
-					return false;
-					// TODO: make a check on string dimension
-					// information text included in the response 
-					// cannot be longer than 32 characters.
-					//int infoLen = FInPowerStatus[0].Length;
-					//string infoSubSet = FInPowerStatus[0].Substring(0, Math.Min(32, infoLen ));
-					//FLogger.Log(LogType.Debug, "Info are: {0}", infoSubSet);
-				}
-				
-				bool checkResponse_info()
-				{
-					if( FInInfo[0] == "OK" || FInInfo[0] == "ERR1" || FInInfo[0] == "ERR3" || FInInfo[0] == "ERR4" )
-					{
-						return true;
-					}
-					// if response is not a standard one, print an error message and exit
-					FLogger.Log( LogType.Debug, "\tResponse to 'INFO ?' request is not valid.");
-					FLogger.Log( LogType.Debug, "\tValid responses are [OK, ERR1, ERR3, ERR4]");
-					return false;
-					// TODO: make a check on string dimension
-					// information text included in the response 
-					// cannot be longer than 32 characters.
-					//int infoLen = FInInfo[0].Length;
-					//string infoSubSet = FInInfo[0].Substring(0, Math.Min(32, infoLen ));
-					//FLogger.Log(LogType.Debug, "Info are: {0}", infoSubSet)
-				}
-				
+					// do nothing 
+				}				
 				
 				FOutResponse[0] = response;	
 				// tell the TCP node to send the response
 				bSendViaTCP = true;
 				FOutSendViaTCP[0] = bSendViaTCP;
-			}
+			} // end of if(FInCommand.IsChanged)
 		} // end of Evaluate
 	} // end of class
 }
