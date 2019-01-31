@@ -10,8 +10,8 @@ def closeSocketAndExit():
 
 
 # initial settings
-ip_server = '127.0.0.1'
-#ip_server = '192.168.1.66'
+#ip_server = '127.0.0.1'
+ip_server = '192.168.1.36'
 ip_port	  = 4352
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect( (ip_server, ip_port) )
